@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Daily Timetable</title>
+<!-- PWA / iPhone Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schedule">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a0f'/><text y='68' x='50' text-anchor='middle' font-size='60'>📅</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3e;
+    --accent:#7c6aff;--accent2:#ff6a9b;--accent3:#6affcb;--accent4:#ffb86a;
+    --text:#e8e8f0;--muted:#6b6b8a;
+    --college:#ff6a9b;--dsa:#7c6aff;--ml:#6affcb;--backend:#ffb86a;
+    --break:#4a4a6a;--routine:#ff9d6a;--gym:#6af0ff;--contest:#ffd166;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,106,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,106,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .container{max-width:1100px;margin:0 auto;padding:max(2rem,env(safe-area-inset-top)) 1.5rem max(4rem,env(safe-area-inset-bottom));padding-left:max(1.5rem,env(safe-area-inset-left));padding-right:max(1.5rem,env(safe-area-inset-right));position:relative;z-index:1;}
+  header{margin-bottom:2.5rem;animation:fadeDown 0.6s ease both;}
+  .header-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+  .title-block h1{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;}
+  .title-block p{color:var(--muted);font-size:0.78rem;margin-top:0.4rem;letter-spacing:0.1em;text-transform:uppercase;}
+  .day-nav{display:flex;gap:0.4rem;flex-wrap:wrap;}
+  .day-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;padding:0.45rem 0.85rem;border-radius:6px;cursor:pointer;transition:all 0.2s ease;}
+  .day-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .day-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .stats-bar{display:flex;gap:0.6rem;margin-bottom:2rem;flex-wrap:wrap;align-items:center;animation:fadeUp 0.6s 0.1s ease both;}
+  .stat-pill{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem;display:flex;align-items:center;gap:0.5rem;font-size:0.72rem;}
+  .stat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .stat-label{color:var(--muted);}.stat-val{color:var(--text);font-weight:500;}
+  .reset-pill{cursor:pointer;transition:all 0.2s;user-select:none;}
+  .reset-pill:hover{border-color:var(--accent2)!important;background:rgba(255,106,155,0.06)!important;}
+  .timeline{display:flex;flex-direction:column;gap:0;animation:fadeUp 0.6s 0.2s ease both;}
+  .time-block{display:grid;grid-template-columns:90px 1fr;gap:0;position:relative;}
+  .time-label{font-size:0.67rem;color:var(--muted);padding:0.9rem 1rem 0.85rem 0;text-align:right;letter-spacing:0.04em;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .time-val{white-space:nowrap;}
+  .block-content{border-left:2px solid var(--border);padding:0 0 0 1.2rem;position:relative;}
+  .block-content::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--border);transition:background 0.3s;}
+  .time-block:hover .block-content::before{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  .block-inner{margin:4px 0;border-radius:10px;padding:0.8rem 1.1rem;border:1px solid transparent;cursor:default;transition:all 0.25s ease;position:relative;overflow:hidden;}
+  .block-inner:hover{transform:translateX(3px);}
+  .type-college{background:rgba(255,106,155,0.08);border-color:rgba(255,106,155,0.25);}
+  .type-college:hover{border-color:rgba(255,106,155,0.5);box-shadow:0 0 20px rgba(255,106,155,0.1);}
+  .type-dsa{background:rgba(124,106,255,0.08);border-color:rgba(124,106,255,0.25);}
+  .type-dsa:hover{border-color:rgba(124,106,255,0.5);box-shadow:0 0 20px rgba(124,106,255,0.1);}
+  .type-ml{background:rgba(106,255,203,0.07);border-color:rgba(106,255,203,0.2);}
+  .type-ml:hover{border-color:rgba(106,255,203,0.45);box-shadow:0 0 20px rgba(106,255,203,0.08);}
+  .type-backend{background:rgba(255,184,106,0.07);border-color:rgba(255,184,106,0.2);}
+  .type-backend:hover{border-color:rgba(255,184,106,0.45);box-shadow:0 0 20px rgba(255,184,106,0.08);}
+  .type-break{background:rgba(74,74,106,0.2);border-color:rgba(74,74,106,0.35);}
+  .type-routine{background:rgba(255,157,106,0.07);border-color:rgba(255,157,106,0.2);}
+  .type-routine:hover{border-color:rgba(255,157,106,0.45);}
+  .type-sleep{background:rgba(124,106,255,0.04);border-color:rgba(124,106,255,0.1);opacity:0.65;}
+  .type-gym{background:rgba(106,240,255,0.07);border-color:rgba(106,240,255,0.2);}
+  .type-gym:hover{border-color:rgba(106,240,255,0.45);box-shadow:0 0 20px rgba(106,240,255,0.08);}
+  .type-contest{background:rgba(255,209,102,0.08);border-color:rgba(255,209,102,0.3);}
+  .type-contest:hover{border-color:rgba(255,209,102,0.6);box-shadow:0 0 20px rgba(255,209,102,0.12);}
+  .tag-contest{color:var(--contest);background:rgba(255,209,102,0.13);}
+  /* Shifted blocks get a dashed border to indicate auto-adjusted time */
+  .shifted .block-inner{border-style:dashed!important;}
+  .block-tag{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.62rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.3rem;padding:0.15rem 0.5rem;border-radius:4px;}
+  .tag-college{color:var(--college);background:rgba(255,106,155,0.12);}
+  .tag-dsa{color:var(--dsa);background:rgba(124,106,255,0.12);}
+  .tag-ml{color:var(--ml);background:rgba(106,255,203,0.1);}
+  .tag-backend{color:var(--backend);background:rgba(255,184,106,0.1);}
+  .tag-break{color:var(--muted);background:rgba(74,74,106,0.3);}
+  .tag-routine{color:var(--routine);background:rgba(255,157,106,0.1);}
+  .tag-sleep{color:var(--muted);background:rgba(74,74,106,0.2);}
+  .tag-gym{color:var(--gym);background:rgba(106,240,255,0.1);}
+  .block-title{font-family:'Syne',sans-serif;font-size:0.92rem;font-weight:700;color:var(--text);margin-bottom:0.15rem;}
+  .block-desc{font-size:0.71rem;color:var(--muted);line-height:1.5;}
+  .block-duration{position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-size:0.63rem;color:var(--muted);letter-spacing:0.05em;}
+  .block-check{position:absolute;right:2.8rem;top:50%;transform:translateY(-50%);width:18px;height:18px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;background:transparent;flex-shrink:0;}
+  .block-check:hover{border-color:var(--accent3);}
+  .block-check.checked{background:var(--accent3);border-color:var(--accent3);}
+  .block-check.checked::after{content:'✓';font-size:0.65rem;color:#0a0a0f;font-weight:900;}
+  .block-inner.done{opacity:0.38;}
+  .block-inner.done .block-title{text-decoration:line-through;}
+  /* Shift badges on time labels */
+  .shift-badge{font-size:0.56rem;letter-spacing:0.05em;padding:0.1rem 0.38rem;border-radius:4px;font-weight:700;text-transform:uppercase;white-space:nowrap;}
+  .shift-early{color:var(--accent3);background:rgba(106,255,203,0.13);}
+  .shift-late{color:var(--accent4);background:rgba(255,184,106,0.14);}
+  /* Lock badge for gym */
+  .lock-tag{font-size:0.54rem;color:var(--muted);opacity:0.55;margin-left:3px;}
+  .legend{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);animation:fadeUp 0.6s 0.3s ease both;}
+  .legend-item{display:flex;align-items:center;gap:0.4rem;font-size:0.68rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
+  .legend-dot{width:8px;height:8px;border-radius:2px;}
+  .progress-wrap{margin-bottom:2rem;animation:fadeUp 0.6s 0.15s ease both;}
+  .progress-label{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.06em;text-transform:uppercase;}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.4s ease;width:0%;}
+  .now-line{display:grid;grid-template-columns:90px 1fr;gap:0;pointer-events:none;}
+  .now-time{font-size:0.68rem;color:var(--accent2);padding:0 1rem 0 0;text-align:right;font-weight:500;}
+  .now-bar{border-left:2px solid transparent;padding-left:1.2rem;}
+  .now-indicator{height:2px;background:linear-gradient(90deg,var(--accent2),transparent);border-radius:1px;position:relative;margin:8px 0;}
+  .now-indicator::before{content:'▶ NOW';position:absolute;left:0;top:-8px;font-size:0.6rem;color:var(--accent2);letter-spacing:0.1em;animation:pulse 2s infinite;}
+  .flex-hint{background:rgba(106,255,203,0.04);border:1px solid rgba(106,255,203,0.12);border-radius:8px;padding:0.55rem 1rem;font-size:0.7rem;color:var(--muted);margin-bottom:1.5rem;letter-spacing:0.04em;animation:fadeUp 0.5s ease both;}
+  .flex-hint span{color:var(--accent3);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+  .weekend-banner{background:rgba(106,255,203,0.06);border:1px solid rgba(106,255,203,0.2);border-radius:10px;padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:0.8rem;color:var(--ml);display:none;animation:fadeUp 0.4s ease both;}
+  .weekend-banner.visible{display:block;}
+  @media(max-width:600px){.time-label{font-size:0.6rem;padding-right:0.6rem;}.block-duration,.block-check{display:none;}.block-inner{padding:0.7rem 0.9rem;}.time-block{grid-template-columns:72px 1fr;}.now-line{grid-template-columns:72px 1fr;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-top">
+      <div class="title-block">
+        <h1>Daily Timetable</h1>
+        <p id="current-date">Loading...</p>
+      </div>
+      <nav class="day-nav" id="dayNav"></nav>
+    </div>
+  </header>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="progress-wrap">
+    <div class="progress-label"><span>Day Progress</span><span id="progressPct">0% complete</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+  <div class="flex-hint">⚡ <span>Flexible schedule</span> — check any block done early or late and all following blocks auto-shift. Gym stays locked at 1.5h. <span>↺ Reset</span> clears the day's shifts.</div>
+  <div class="weekend-banner" id="weekendBanner">🎯 Weekend Mode — No college. Deep study + up to 8h sleep. Check Wake Up when you actually rise.</div>
+  <div class="timeline" id="timeline"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--college)"></div>College</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--dsa)"></div>DSA / CP</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ml)"></div>ML / CS229</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--backend)"></div>Backend</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--contest)"></div>Contest</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gym)"></div>Gym 🔒</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--routine)"></div>Routine</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--break)"></div>Break</div>
+  </div>
+</div>
+<script>
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// fixed:true  → block never shifts (college always starts at 9)
+// locked:true → duration is always 1.5h (gym)
+// Weekdays: sleep 12 AM–6 AM = 6h
+// Weekends: sleep 12 AM, flexible up to 8h (just wake up late, cascade does the rest)
+const WD=[
+  {time:'06:00',title:'Wake Up & Morning Routine',desc:'Freshen up, hydration, light stretching',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'06:30',title:'DSA / Competitive Programming',desc:'LeetCode problems, contest prep, pattern practice',type:'dsa',tag:'DSA / CP',dur:'1h'},
+  {time:'07:30',title:'Breakfast & Commute Prep',desc:'Eat well, pack up, travel to college',type:'routine',tag:'Routine',dur:'1.5h'},
+  {time:'09:00',title:'College Classes',desc:'Fixed 9 AM start — attend lectures, labs, seminars',type:'college',tag:'College',dur:'6.5h',fixed:true},
+  {time:'15:30',title:'Commute Back Home',desc:'Travel back, decompress',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'16:00',title:'Gym',desc:'Workout — strength, cardio, or mixed. Duration locked.',type:'gym',tag:'Gym',dur:'1.5h',locked:true},
+  {time:'17:30',title:'Freshen Up & Rest',desc:'Shower, recharge, light snack',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'18:00',title:'Machine Learning — CS229',desc:'Lectures, notes, problem sets, paper reading',type:'ml',tag:'ML / CS229',dur:'1h'},
+  {time:'19:00',title:'Backend Development',desc:'Spring Boot, APIs, projects, system design',type:'backend',tag:'Backend',dur:'1h'},
+  {time:'20:00',title:'Dinner & Wind Down',desc:'Eat, walk, podcast',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'20:30',title:'DSA — Deep Practice / CF Round',desc:'Mock contests, hard problems — or join a Codeforces round if scheduled tonight',type:'dsa',tag:'DSA / CP',dur:'1h'},
+  {time:'21:30',title:'Review & Planning',desc:"Revise day's learnings, plan tomorrow",type:'routine',tag:'Routine',dur:'30m'},
+  {time:'22:00',title:'Free / Leisure Time',desc:'Unwind, hobby, or extra study if motivated',type:'break',tag:'Break',dur:'2h'},
+  {time:'00:00',title:'Sleep',desc:'6 hours — wake at 6 AM',type:'sleep',tag:'Sleep',dur:'6h'},
+];
+const SAT=[
+  {time:'06:00',title:'Wake Up & Morning Routine',desc:'Freshen up — or check this when you actually wake (up to 8 AM)',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'06:30',title:'Deep DSA Session',desc:'Hard LeetCode, Codeforces, advanced data structures',type:'dsa',tag:'DSA / CP',dur:'2h'},
+  {time:'08:30',title:'Breakfast Break',desc:'Eat well, step outside briefly',type:'break',tag:'Break',dur:'30m'},
+  {time:'09:00',title:'Machine Learning — CS229',desc:'Deep dive: lectures + paper reading + implementation',type:'ml',tag:'ML / CS229',dur:'2.5h'},
+  {time:'11:30',title:'Backend Development',desc:'Build features, REST APIs, database design',type:'backend',tag:'Backend',dur:'2h'},
+  {time:'13:30',title:'Lunch & Rest',desc:'Full lunch break, short nap or walk',type:'break',tag:'Break',dur:'1h'},
+  {time:'14:30',title:'DSA / Competitive Programming',desc:'Mock contest or deep problem solving session',type:'dsa',tag:'DSA / CP',dur:'1.5h'},
+  {time:'16:00',title:'Gym',desc:'Workout — strength, cardio, or mixed. Duration locked.',type:'gym',tag:'Gym',dur:'1.5h',locked:true},
+  {time:'17:30',title:'ML Implementation',desc:'Code algorithms from CS229 from scratch',type:'ml',tag:'ML / CS229',dur:'1h'},
+  {time:'18:30',title:'Dinner & Break',desc:'Relax, eat, recharge',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'19:00',title:'Backend / Project Work',desc:'Side projects, portfolio, open source',type:'backend',tag:'Backend',dur:'1h'},
+  {time:'20:00',title:'Codeforces / LC Biweekly Contest',desc:'codeforces.com or leetcode.com/contest — Sat contests ~8 PM IST. Check schedule and join if available',type:'contest',tag:'Contest',dur:'2h'},
+  {time:'22:00',title:'Contest Upsolve & Review',desc:'Solve problems you couldn\'t finish, read editorials',type:'dsa',tag:'DSA / CP',dur:'30m'},
+  {time:'22:30',title:'Free / Leisure Time',desc:'Wind down, reading, entertainment',type:'break',tag:'Break',dur:'1.5h'},
+  {time:'00:00',title:'Sleep',desc:'6–8h flexible — check Wake Up when you actually rise',type:'sleep',tag:'Sleep',dur:'6h'},
+];
+const SUN=[
+  {time:'06:00',title:'Wake Up & Morning Routine',desc:'Freshen up — or check this when you actually wake (up to 8 AM)',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'06:30',title:'Contest Warm-Up — DSA',desc:'Solve 1-2 easy/med problems to sharpen mind before LeetCode Weekly',type:'dsa',tag:'DSA / CP',dur:'1h'},
+  {time:'07:30',title:'Pre-Contest Prep',desc:'Skim recent contest patterns, review edge cases, set up environment',type:'dsa',tag:'DSA / CP',dur:'30m'},
+  {time:'08:00',title:'LeetCode Weekly Contest',desc:'leetcode.com/contest — Every Sunday 8:00 AM IST. Give full 1.5h',type:'contest',tag:'Contest',dur:'1.5h',fixed:true},
+  {time:'09:30',title:'Breakfast & Contest Review',desc:'Eat while reviewing problems you couldn\'t solve during contest',type:'break',tag:'Break',dur:'1h'},
+  {time:'10:30',title:'Machine Learning — CS229',desc:'Deep dive: lectures + paper reading + implementation',type:'ml',tag:'ML / CS229',dur:'2.5h'},
+  {time:'13:00',title:'Backend Development',desc:'Build features, REST APIs, database design',type:'backend',tag:'Backend',dur:'2h'},
+  {time:'15:00',title:'Lunch & Rest',desc:'Full lunch break, short nap or walk',type:'break',tag:'Break',dur:'1h'},
+  {time:'16:00',title:'DSA — Upsolve + Practice',desc:'Solve contest problems you missed, then go harder',type:'dsa',tag:'DSA / CP',dur:'2h'},
+  {time:'18:00',title:'ML Implementation',desc:'Code algorithms from CS229 from scratch',type:'ml',tag:'ML / CS229',dur:'1.5h'},
+  {time:'19:30',title:'Dinner & Break',desc:'Relax, eat, recharge — Rest Day',type:'routine',tag:'Routine',dur:'1h'},
+  {time:'20:30',title:'Backend / Project Work',desc:'Side projects, portfolio, open source',type:'backend',tag:'Backend',dur:'1.5h'},
+  {time:'22:00',title:'Weekly Review & Planning',desc:'Reflect on the week, set goals, prep Monday plan',type:'routine',tag:'Routine',dur:'30m'},
+  {time:'22:30',title:'Free / Leisure Time',desc:'Wind down, reading, entertainment',type:'break',tag:'Break',dur:'1.5h'},
+  {time:'00:00',title:'Sleep',desc:'6–8h flexible — Rest Day Recovery',type:'sleep',tag:'Sleep',dur:'6h'},
+];
+
+function ttm(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function fmtDisp(mins){
+  mins=((mins%1440)+1440)%1440;
+  const h=Math.floor(mins/60),m=String(mins%60).padStart(2,'0');
+  if(h===0)return`12:${m} AM`;if(h===12)return`12:${m} PM`;
+  return h>12?`${h-12}:${m} PM`:`${h}:${m} AM`;
+}
+function parseDur(s){let m=0;const hm=s.match(/(\d+\.?\d*)h/);if(hm)m+=parseFloat(hm[1])*60;const mm=s.match(/(\d+)m/);if(mm)m+=parseInt(mm[1]);return m;}
+function getSchedule(d){if(d===0)return SUN;if(d===6)return SAT;return WD;}
+
+let cur=new Date().getDay();
+let chk={};
+// actualFinish[day][blockIdx] = minute-of-day when that block was checked done
+let actualFinish={};
+try{chk=JSON.parse(localStorage.getItem('tt2_chk')||'{}');}catch(e){}
+try{actualFinish=JSON.parse(localStorage.getItem('tt2_af')||'{}');}catch(e){}
+function save(){try{localStorage.setItem('tt2_chk',JSON.stringify(chk));}catch(e){}}
+function saveAF(){try{localStorage.setItem('tt2_af',JSON.stringify(actualFinish));}catch(e){}}
+
+// Returns adjusted start-time (minutes) for block j in schedule sc.
+// Logic:
+//   - fixed blocks (college) never shift.
+//   - pre-college blocks: cascade from the nearest prior checked block before college.
+//   - post-college blocks: cascade from the nearest prior checked block at/after college.
+function getAdjustedStart(sc, j){
+  const fixedIdx=sc.findIndex(b=>b.fixed);
+  if(fixedIdx>=0 && j===fixedIdx) return ttm(sc[j].time);
+  const dayAF=actualFinish[cur]||{};
+  const searchFrom=(fixedIdx>=0 && j>fixedIdx) ? fixedIdx : 0;
+  let prevIdx=-1;
+  for(let i=j-1;i>=searchFrom;i--){
+    if(dayAF[i]!==undefined){prevIdx=i;break;}
+  }
+  if(prevIdx===-1) return ttm(sc[j].time);
+  const schedEnd=ttm(sc[prevIdx].time)+parseDur(sc[prevIdx].dur);
+  const delta=dayAF[prevIdx]-schedEnd;
+  return ttm(sc[j].time)+delta;
+}
+
+function buildNav(){
+  const nav=document.getElementById('dayNav');nav.innerHTML='';
+  DAYS.forEach((d,i)=>{
+    const b=document.createElement('button');
+    b.className='day-btn'+(i===cur?' active':'');
+    b.textContent=SHORT[i];
+    b.onclick=()=>{cur=i;renderAll();};
+    nav.appendChild(b);
+  });
+}
+
+function buildStats(sc){
+  const bar=document.getElementById('statsBar');
+  let sm=0,cm=0,gm=0,sleepTime='12:00 AM';
+  sc.forEach(b=>{
+    const m=parseDur(b.dur);
+    if(['dsa','ml','backend'].includes(b.type))sm+=m;
+    if(b.type==='college')cm+=m;
+    if(b.type==='gym')gm+=m;
+    if(b.type==='sleep'){
+      const h=parseInt(b.time.split(':')[0]),mn=b.time.split(':')[1];
+      sleepTime=h===0?`12:${mn} AM`:h>12?`${h-12}:${mn} PM`:`${h}:${mn} PM`;
+    }
+  });
+  const gymPill=gm>0?`<div class="stat-pill"><div class="stat-dot" style="background:var(--gym)"></div><span class="stat-label">Gym</span><span class="stat-val">&nbsp;${(gm/60).toFixed(1)}h 🔒</span></div>`:'';
+  const hasShifts=Object.keys(actualFinish[cur]||{}).length>0;
+  const resetPill=hasShifts?`<div class="stat-pill reset-pill" onclick="resetDay()" title="Clear all time adjustments for today"><span style="color:var(--accent2);font-size:0.7rem;letter-spacing:0.07em;">↺ Reset Shifts</span></div>`:'';
+  bar.innerHTML=`
+    <div class="stat-pill"><div class="stat-dot" style="background:var(--dsa)"></div><span class="stat-label">Study</span><span class="stat-val">&nbsp;${(sm/60).toFixed(1)}h</span></div>
+    <div class="stat-pill"><div class="stat-dot" style="background:var(--college)"></div><span class="stat-label">College</span><span class="stat-val">&nbsp;${(cm/60).toFixed(1)}h</span></div>
+    ${gymPill}
+    <div class="stat-pill"><div class="stat-dot" style="background:var(--accent3)"></div><span class="stat-label">Wake</span><span class="stat-val">&nbsp;06:00 AM</span></div>
+    <div class="stat-pill"><div class="stat-dot" style="background:var(--muted)"></div><span class="stat-label">Sleep</span><span class="stat-val">&nbsp;${sleepTime}</span></div>
+    ${resetPill}`;
+}
+
+function buildTL(sc){
+  const tl=document.getElementById('timeline');tl.innerHTML='';
+  const now=new Date();const nm=now.getHours()*60+now.getMinutes();const isT=cur===now.getDay();let ni=false;
+  sc.forEach((block,idx)=>{
+    const adjStart=getAdjustedStart(sc,idx);
+    const adjEnd=idx+1<sc.length ? getAdjustedStart(sc,idx+1) : adjStart+parseDur(block.dur);
+    // Insert "now" line
+    if(isT&&!ni&&nm>=adjStart&&nm<adjEnd){
+      ni=true;
+      const nr=document.createElement('div');nr.className='now-line';
+      const nt=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false});
+      nr.innerHTML=`<div class="now-time">${nt}</div><div class="now-bar"><div class="now-indicator"></div></div>`;
+      tl.appendChild(nr);
+    }
+    const key=`${cur}_${idx}`;const done=!!chk[key];
+    const delta=Math.round(adjStart-ttm(block.time));
+    // Build shift badge
+    let badge='';
+    if(delta<=-1){
+      const m=Math.abs(delta);
+      const label=m<60?`${m}m`:`${Math.floor(m/60)}h${m%60?String(m%60).padStart(2,'0'):''}`;
+      badge=`<span class="shift-badge shift-early">▲${label}</span>`;
+    } else if(delta>=1){
+      const m=delta;
+      const label=m<60?`${m}m`:`${Math.floor(m/60)}h${m%60?String(m%60).padStart(2,'0'):''}`;
+      badge=`<span class="shift-badge shift-late">▼${label}</span>`;
+    }
+    const lockTag=block.locked?`<span class="lock-tag">🔒</span>`:'';
+    const fixedTag=block.fixed?`<span class="lock-tag" title="Fixed start time">📌</span>`:'';
+    const row=document.createElement('div');
+    row.className='time-block'+(delta!==0?' shifted':'');
+    row.innerHTML=`
+      <div class="time-label">
+        <span class="time-val">${fmtDisp(adjStart)}</span>
+        ${badge}
+      </div>
+      <div class="block-content">
+        <div class="block-inner type-${block.type}${done?' done':''}">
+          <div class="block-tag tag-${block.type}">${block.tag}${lockTag}${fixedTag}</div>
+          <div class="block-title">${block.title}</div>
+          <div class="block-desc">${block.desc}</div>
+          <div class="block-check${done?' checked':''}" data-key="${key}" data-idx="${idx}"></div>
+          <div class="block-duration">${block.dur}</div>
+        </div>
+      </div>`;
+    tl.appendChild(row);
+  });
+  // Attach check listeners
+  tl.querySelectorAll('.block-check').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      const k=el.dataset.key;const idx=parseInt(el.dataset.idx);
+      if(!chk[k]){
+        // Checking: record actual finish = now
+        const nowMins=new Date().getHours()*60+new Date().getMinutes();
+        if(!actualFinish[cur])actualFinish[cur]={};
+        actualFinish[cur][idx]=nowMins;
+        saveAF();
+      } else {
+        // Unchecking: remove checkpoint, revert cascade from this block
+        if(actualFinish[cur]){delete actualFinish[cur][idx];saveAF();}
+      }
+      chk[k]=!chk[k];save();renderAll();
+    });
+  });
+}
+
+function updateProg(sc){
+  let tot=0,done=0;
+  sc.forEach((b,i)=>{if(b.type==='sleep')return;tot++;if(chk[`${cur}_${i}`])done++;});
+  const p=tot?Math.round(done/tot*100):0;
+  document.getElementById('progressFill').style.width=p+'%';
+  document.getElementById('progressPct').textContent=`${done}/${tot} blocks — ${p}% complete`;
+}
+
+function resetDay(){
+  if(actualFinish[cur]){delete actualFinish[cur];saveAF();}
+  renderAll();
+}
+
+function renderAll(){
+  const sc=getSchedule(cur);
+  buildNav();buildStats(sc);buildTL(sc);updateProg(sc);
+  document.getElementById('weekendBanner').classList.toggle('visible',cur===0||cur===6);
+  const now=new Date();
+  document.getElementById('current-date').textContent=(DAYS[cur]+', '+now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})).toUpperCase();
+}
+renderAll();
+setInterval(()=>{if(cur===new Date().getDay())renderAll();},60000);
+</script>
+</body>
+</html>
