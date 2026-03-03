@@ -2,7 +2,6 @@
 
 A personal schedule tracker built as a single-page web app. Deployed on Vercel and installable as a PWA on iPhone.
 
-**Live:** https://timetable-app-three.vercel.app
 
 ## Features
 
